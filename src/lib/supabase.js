@@ -141,6 +141,19 @@ export async function fetchAmbassadors() {
 
 export async function saveAmbassador(member) {
   if (isSupabaseConfigured) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('Debes iniciar sesión para editar tu perfil.');
+    }
+    if (
+      (member.user_id && member.user_id !== user.id) ||
+      (member.email && member.email.toLowerCase() !== user.email?.toLowerCase())
+    ) {
+      throw new Error('Solo puedes modificar tu propio perfil de embajador(a).');
+    }
+
     const payload = {
       full_name: member.full_name,
       career: member.career,
@@ -154,24 +167,15 @@ export async function saveAmbassador(member) {
       is_active: member.is_active !== undefined ? member.is_active : true,
     };
 
-    if (member.id && !String(member.id).startsWith('amb-')) {
-      const { data, error } = await supabase
-        .from('ambassadors')
-        .update(payload)
-        .eq('id', member.id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    } else {
-      const { data, error } = await supabase
-        .from('ambassadors')
-        .insert([payload])
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    }
+    const { data, error } = await supabase
+      .from('ambassadors')
+      .update(payload)
+      .eq('id', member.id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   }
 
   const list = getLocalData(STORAGE_KEYS.AMBASSADORS, INITIAL_AMBASSADORS);
@@ -193,9 +197,7 @@ export async function saveAmbassador(member) {
 
 export async function deleteAmbassadorById(id) {
   if (isSupabaseConfigured) {
-    const { error } = await supabase.from('ambassadors').delete().eq('id', id);
-    if (error) throw error;
-    return true;
+    throw new Error('Los perfiles oficiales del equipo no pueden eliminarse.');
   }
   const list = getLocalData(STORAGE_KEYS.AMBASSADORS, INITIAL_AMBASSADORS);
   setLocalData(
@@ -207,15 +209,22 @@ export async function deleteAmbassadorById(id) {
 
 export async function uploadAmbassadorAvatar(file) {
   if (isSupabaseConfigured) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      throw new Error('Debes iniciar sesión para subir tu foto de perfil.');
+    }
+
     const ext = file.name.split('.').pop();
-    const fileName = `ambassador-${Date.now()}.${ext}`;
+    const filePath = `${user.id}/avatar-${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(fileName, file, { cacheControl: '3600', upsert: true });
+      .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
     return data.publicUrl;
   }
 

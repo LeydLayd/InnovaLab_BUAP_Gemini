@@ -22,6 +22,8 @@ create table if not exists public.prompts (
 -- 2. TABLA DE EMBAJADORES (QUIÉNES SOMOS)
 create table if not exists public.ambassadors (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id),
+  email text unique,
   full_name text not null,
   career text not null,
   role_title text not null,
@@ -34,6 +36,8 @@ create table if not exists public.ambassadors (
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+create index if not exists ambassadors_user_id_idx on public.ambassadors (user_id);
 
 -- 3. TABLA DE DUDAS DE ESTUDIANTES
 create table if not exists public.doubts (
@@ -76,7 +80,7 @@ create policy "Administradores eliminan prompts"
   to authenticated
   using ((select auth.uid()) is not null);
 
--- Políticas para EMBAJADORES: Todos pueden leer, solo administradores autenticados editan
+-- Políticas para EMBAJADORES: Todos pueden leer, pero cada embajador SOLO puede modificar su propio perfil
 create policy "Lectura pública de embajadores"
   on public.ambassadors for select
   to anon, authenticated
@@ -85,18 +89,18 @@ create policy "Lectura pública de embajadores"
 create policy "Administradores insertan embajadores"
   on public.ambassadors for insert
   to authenticated
-  with check ((select auth.uid()) is not null);
+  with check ((select auth.uid()) = user_id);
 
 create policy "Administradores actualizan embajadores"
   on public.ambassadors for update
   to authenticated
-  using ((select auth.uid()) is not null)
-  with check ((select auth.uid()) is not null);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 create policy "Administradores eliminan embajadores"
   on public.ambassadors for delete
   to authenticated
-  using ((select auth.uid()) is not null);
+  using (false);
 
 -- Políticas para DUDAS: Cualquier estudiante puede enviar (insert), solo admins leen y actualizan
 create policy "Estudiantes pueden enviar dudas"
@@ -139,18 +143,30 @@ create policy "Fotos de perfil públicas"
 create policy "Administradores suben fotos"
   on storage.objects for insert
   to authenticated
-  with check ( bucket_id = 'avatars' and (select auth.uid()) is not null );
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
 
 create policy "Administradores actualizan fotos"
   on storage.objects for update
   to authenticated
-  using ( bucket_id = 'avatars' and (select auth.uid()) is not null )
-  with check ( bucket_id = 'avatars' and (select auth.uid()) is not null );
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  )
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
 
 create policy "Administradores borran fotos"
   on storage.objects for delete
   to authenticated
-  using ( bucket_id = 'avatars' and (select auth.uid()) is not null );
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
 
 -- ============================================================================
 -- 6. DATOS INICIALES (TUS 2 PROMPTS ACTUALES + 3 PERFILES DE EMBAJADORES BASE)

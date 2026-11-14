@@ -75,6 +75,7 @@ export const INITIAL_AMBASSADORS = [
   {
     id: 'amb-1',
     full_name: 'Diego',
+    email: 'diegoroblesg404@gmail.com',
     career: 'Ingeniería y Desarrollo de Software',
     role_title: 'Embajador Técnico Google Gemini',
     bio: 'Apasionado por construir herramientas tecnológicas e integrar Inteligencia Artificial para resolver problemas reales en nuestra comunidad universitaria.',
@@ -89,6 +90,7 @@ export const INITIAL_AMBASSADORS = [
   {
     id: 'amb-2',
     full_name: 'Frida',
+    email: 'fridaguarneros26@gmail.com',
     career: 'Licenciatura en Comercio Internacional',
     role_title: 'Embajadora Google Gemini · Estrategia y Difusión',
     bio: 'Enfocada en conectar a los estudiantes con herramientas de IA para potenciar análisis de mercados, presentaciones ejecutivas y proyectos globales.',
@@ -103,6 +105,7 @@ export const INITIAL_AMBASSADORS = [
   {
     id: 'amb-3',
     full_name: 'Alo',
+    email: 'aloterra1704@gmail.com',
     career: 'Licenciatura en Administración de Empresas',
     role_title: 'Embajadora Google Gemini · Gestión y Comunidad',
     bio: 'Impulsando la productividad estudiantil y la organización de proyectos universitarios mediante flujos de trabajo inteligentes con Google Gemini.',
