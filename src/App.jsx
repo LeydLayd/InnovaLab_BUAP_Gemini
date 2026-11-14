@@ -58,8 +58,18 @@ export default function App() {
     const handleHashChange = () => {
       setIsAdminView(window.location.hash === '#admin');
     };
+    const handleSecretShortcut = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        openAdmin();
+      }
+    };
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('keydown', handleSecretShortcut);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('keydown', handleSecretShortcut);
+    };
   }, []);
 
   const openAdmin = () => {
@@ -142,30 +152,22 @@ export default function App() {
             )}
           </main>
 
-          {/* Pie de página */}
+          {/* Pie de página con acceso discreto para embajadores */}
           <footer className="w-full py-6 px-4 text-center text-xs text-gray-500 border-t border-gray-200/80 mt-auto">
-            <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-              <div className="flex items-center justify-center gap-2">
-                <svg
-                  className="w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle cx="12" cy="12" r="10" strokeWidth="2"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12" strokeWidth="2"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8" strokeWidth="2"></line>
-                </svg>
-                <span>Comunidad Universitaria · Embajadores para Google Gemini</span>
-              </div>
-
+            <div className="max-w-5xl mx-auto flex items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={openAdmin}
-                className="text-gray-400 hover:text-gray-700 underline transition-colors"
+                aria-label="Comunidad Universitaria"
+                className="inline-flex items-center justify-center p-1 rounded-full text-gray-400/70 hover:text-gray-500 transition-colors cursor-default"
               >
-                Acceso Embajadores
+                <img
+                  src="/gemini.png"
+                  alt=""
+                  className="w-4 h-4 object-contain opacity-60 hover:opacity-100 transition-opacity"
+                />
               </button>
+              <span>Comunidad Universitaria · Embajadores para Google Gemini</span>
             </div>
           </footer>
         </>

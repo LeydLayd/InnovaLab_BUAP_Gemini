@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Search, X, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const SECTIONS = [
   {
@@ -125,22 +125,8 @@ export default function HeaderCarousel({
         onTouchEnd={handleTouchEnd}
         className={`w-full ${currentSectionObj.headerBg} transition-colors duration-500 ease-in-out relative pt-6 pb-8 sm:pt-10 sm:pb-11 px-3 sm:px-4 flex flex-col items-center justify-center overflow-hidden select-none`}
       >
-        {/* Barra de utilidades superior: Acceso Admin y Buscador */}
-        <div className="w-full max-w-6xl flex items-center justify-between gap-2 mb-3 sm:mb-6 z-30 px-1">
-          <button
-            type="button"
-            onClick={onOpenAdmin}
-            className={`inline-flex items-center gap-1.5 text-xs font-semibold backdrop-blur-sm px-3 py-1.5 rounded-full transition-all shadow-sm flex-shrink-0 ${
-              currentSectionObj.isDarkBg
-                ? 'text-white bg-black/20 hover:bg-black/35 border border-white/25'
-                : 'text-gray-900/85 hover:text-black bg-white/45 hover:bg-white/80'
-            }`}
-            title="Acceso exclusivo para el equipo de Embajadores"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className={isSearchOpen ? 'hidden sm:inline' : 'inline'}>Panel Embajadores</span>
-          </button>
-
+        {/* Barra de utilidades superior: Buscador alineado a la derecha */}
+        <div className="w-full max-w-6xl flex items-center justify-end gap-2 mb-3 sm:mb-6 z-30 px-1">
           {/* Buscador interactivo adaptable a pantallas pequeñas */}
           <div className={`flex items-center justify-end ${isSearchOpen ? 'flex-1 sm:flex-initial' : ''}`}>
             {isSearchOpen ? (
