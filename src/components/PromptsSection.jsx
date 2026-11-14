@@ -24,8 +24,8 @@ export default function PromptsSection({
   onClearSearch,
   onShowToast,
 }) {
-  // Por defecto todos los acordeones inician abiertos como en el HTML original
-  const [collapsedIds, setCollapsedIds] = useState({});
+  // Por defecto todos los acordeones de prompts inician contraídos
+  const [expandedIds, setExpandedIds] = useState({});
   const [copiedId, setCopiedId] = useState(null);
 
   const activePrompts = prompts.filter((p) => p.is_active !== false);
@@ -42,7 +42,7 @@ export default function PromptsSection({
   });
 
   const toggleItem = (id) => {
-    setCollapsedIds((prev) => ({
+    setExpandedIds((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
@@ -50,17 +50,17 @@ export default function PromptsSection({
 
   const allCollapsed =
     filteredPrompts.length > 0 &&
-    filteredPrompts.every((p) => Boolean(collapsedIds[p.id]));
+    filteredPrompts.every((p) => !expandedIds[p.id]);
 
   const toggleAll = () => {
     if (allCollapsed) {
-      setCollapsedIds({});
-    } else {
       const next = {};
       filteredPrompts.forEach((p) => {
         next[p.id] = true;
       });
-      setCollapsedIds(next);
+      setExpandedIds(next);
+    } else {
+      setExpandedIds({});
     }
   };
 
@@ -144,7 +144,7 @@ export default function PromptsSection({
         </div>
       ) : (
         filteredPrompts.map((prompt, index) => {
-          const isExpanded = !collapsedIds[prompt.id];
+          const isExpanded = Boolean(expandedIds[prompt.id]);
           const isCopied = copiedId === prompt.id;
           const badgeClass = BADGE_STYLES[prompt.badge_color] || BADGE_STYLES.blue;
           const pills = Array.isArray(prompt.visual_pills) ? prompt.visual_pills : [];
@@ -170,7 +170,7 @@ export default function PromptsSection({
                 <div className="p-1.5 rounded-full group-hover:bg-blue-50 transition-colors flex-shrink-0">
                   <ChevronDown
                     className={`w-6 h-6 text-gray-600 group-hover:text-blue-600 stroke-[2.5] transition-transform duration-300 ${
-                      isExpanded ? 'rotate-0' : '-rotate-180'
+                      isExpanded ? 'rotate-180' : 'rotate-0'
                     }`}
                   />
                 </div>
