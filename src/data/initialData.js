@@ -82,6 +82,7 @@ export const INITIAL_AMBASSADORS = [
     favorite_prompt:
       'Uso Gemini como copiloto de arquitectura de software, depuración de código y diseño de prototipos interactivos en segundos.',
     avatar_url: '',
+    banner_url: '',
     linkedin_url: 'https://linkedin.com',
     instagram_url: 'https://instagram.com',
     display_order: 1,
@@ -97,6 +98,7 @@ export const INITIAL_AMBASSADORS = [
     favorite_prompt:
       'Pido a Gemini que simule negociaciones internacionales y estructure estudios de mercado comparativos.',
     avatar_url: '',
+    banner_url: '',
     linkedin_url: 'https://linkedin.com',
     instagram_url: 'https://instagram.com',
     display_order: 2,
@@ -112,6 +114,7 @@ export const INITIAL_AMBASSADORS = [
     favorite_prompt:
       'Mi favorito es el Planner Operativo Semanal para organizar entregas pesadas sin saturar la agenda.',
     avatar_url: '',
+    banner_url: '',
     linkedin_url: 'https://linkedin.com',
     instagram_url: 'https://instagram.com',
     display_order: 3,
