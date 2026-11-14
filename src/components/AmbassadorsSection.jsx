@@ -59,12 +59,20 @@ export default function AmbassadorsSection({ ambassadors, onGoToDoubts }) {
               key={member.id || idx}
               className="bg-white rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden"
             >
-              {/* Franja decorativa superior */}
-              <div className="h-20 bg-gradient-to-r from-[#F5BF23]/90 via-amber-300 to-[#0085FF]/85 relative" />
+              {/* Franja superior: Imagen de Banner personalizada (3:1) o Degradado Gemini por defecto */}
+              <div className="h-28 w-full bg-gradient-to-r from-[#F5BF23]/90 via-amber-300 to-[#0085FF]/85 overflow-hidden">
+                {member.banner_url && (
+                  <img
+                    src={member.banner_url}
+                    alt={`Banner de ${member.full_name}`}
+                    className="w-full h-full object-cover object-center"
+                  />
+                )}
+              </div>
 
               <div className="px-6 pb-6 flex-1 flex flex-col">
-                {/* Foto de perfil o Avatar con Iniciales */}
-                <div className="-mt-12 mb-4 flex items-end justify-between">
+                {/* Foto de perfil o Avatar con Iniciales (z-10 para quedar siempre sobre el banner) */}
+                <div className="-mt-12 mb-4 flex items-end justify-between relative z-10">
                   {member.avatar_url ? (
                     <img
                       src={member.avatar_url}
