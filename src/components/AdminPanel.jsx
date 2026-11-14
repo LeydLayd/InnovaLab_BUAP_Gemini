@@ -19,6 +19,8 @@ import {
   X,
   Database,
   Lock,
+  Image as ImageIcon,
+  KeyRound,
 } from 'lucide-react';
 import {
   supabase,
@@ -28,6 +30,7 @@ import {
   saveAmbassador,
   deleteAmbassadorById,
   uploadAmbassadorAvatar,
+  uploadAmbassadorBanner,
   updateDoubtStatus,
   deleteDoubtById,
 } from '../lib/supabase';
@@ -68,6 +71,7 @@ export default function AdminPanel({
   const [editingAmbassador, setEditingAmbassador] = useState(null);
   const [isSavingAmbassador, setIsSavingAmbassador] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Confirmación antes de eliminar (Prevención de errores)
   const [confirmDelete, setConfirmDelete] = useState(null); // { type: 'prompt'|'ambassador'|'doubt', id, title }
@@ -170,11 +174,14 @@ export default function AdminPanel({
   const openNewAmbassadorModal = () => {
     setEditingAmbassador({
       full_name: '',
+      email: '',
+      newPassword: '',
       career: '',
       role_title: 'Embajador(a) Google Gemini',
       bio: '',
       favorite_prompt: '',
       avatar_url: '',
+      banner_url: '',
       linkedin_url: '',
       instagram_url: '',
       display_order: ambassadors.length + 1,
@@ -189,12 +196,28 @@ export default function AdminPanel({
     try {
       const url = await uploadAmbassadorAvatar(file);
       setEditingAmbassador((prev) => ({ ...prev, avatar_url: url }));
-      onShowToast('Foto cargada correctamente');
+      onShowToast('Foto de perfil ajustada (400×400 px) y cargada');
     } catch (err) {
       console.error(err);
-      onShowToast('No se pudo subir la imagen. Intenta con otra foto más ligera.');
+      onShowToast('No se pudo subir la imagen. Intenta con otra foto.');
     } finally {
       setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBanner(true);
+    try {
+      const url = await uploadAmbassadorBanner(file);
+      setEditingAmbassador((prev) => ({ ...prev, banner_url: url }));
+      onShowToast('Banner ajustado automáticamente (900×300 px) y cargado');
+    } catch (err) {
+      console.error(err);
+      onShowToast('No se pudo subir el banner. Intenta con otra imagen.');
+    } finally {
+      setIsUploadingBanner(false);
     }
   };
 
@@ -204,15 +227,46 @@ export default function AdminPanel({
       onShowToast('Por favor escribe el nombre y la carrera del embajador(a)');
       return;
     }
+    if (!editingAmbassador.email?.trim()) {
+      onShowToast('Por favor ingresa el correo electrónico de acceso');
+      return;
+    }
+    if (
+      editingAmbassador.newPassword &&
+      editingAmbassador.newPassword.trim().length > 0 &&
+      editingAmbassador.newPassword.trim().length < 6
+    ) {
+      onShowToast('La nueva contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    const isCreatingNew =
+      !editingAmbassador.id || String(editingAmbassador.id).startsWith('amb-');
+
     setIsSavingAmbassador(true);
     try {
-      await saveAmbassador(editingAmbassador);
+      await saveAmbassador(editingAmbassador, {
+        email: editingAmbassador.email,
+        newPassword: editingAmbassador.newPassword,
+      });
+
+      if (!isCreatingNew && isSupabaseConfigured && supabase) {
+        const { data } = await supabase.auth.refreshSession();
+        if (data?.session) {
+          setSession(data.session);
+        }
+      }
+
       await onRefreshData();
       setEditingAmbassador(null);
-      onShowToast('¡Perfil de embajador(a) actualizado!');
+      onShowToast(
+        isCreatingNew
+          ? '¡Nuevo embajador(a) registrado con contraseña inicial Embajadores2026!'
+          : '¡Tu perfil y datos de cuenta se actualizaron correctamente!'
+      );
     } catch (err) {
       console.error(err);
-      onShowToast('Error al guardar el perfil');
+      onShowToast(err.message || 'Error al guardar el perfil');
     } finally {
       setIsSavingAmbassador(false);
     }
@@ -565,16 +619,29 @@ export default function AdminPanel({
                   Perfiles del Equipo (About Us)
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-600">
-                  Cada embajador(a) puede personalizar únicamente <strong>su propio perfil</strong>{' '}
-                  (foto, biografía, carrera y enlaces). Los perfiles de tus compañeros están
-                  protegidos contra edición.
+                  Solo puedes modificar <strong>tu propio perfil, banner, correo y contraseña</strong>. Si
+                  agregas un nuevo embajador(a), se creará con su correo y la contraseña por defecto{' '}
+                  <code className="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-gray-800">
+                    Embajadores2026!
+                  </code>
+                  .
                 </p>
               </div>
-              {session?.user?.email && (
-                <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-[#007CF0] text-xs font-semibold px-3.5 py-2 rounded-xl">
-                  <span>Sesión activa: {session.user.email}</span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+                {session?.user?.email && (
+                  <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-[#007CF0] text-xs font-semibold px-3.5 py-2 rounded-xl">
+                    <span>Sesión: {session.user.email}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={openNewAmbassadorModal}
+                  className="inline-flex items-center justify-center gap-2 bg-[#0085FF] hover:bg-blue-600 text-white font-semibold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-sm transition-colors"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <span>Agregar Embajador(a)</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -591,64 +658,86 @@ export default function AdminPanel({
                 return (
                   <div
                     key={member.id || idx}
-                    className={`bg-white rounded-2xl border p-5 shadow-sm flex flex-col justify-between gap-4 transition-all ${
+                    className={`bg-white rounded-2xl border shadow-sm flex flex-col justify-between overflow-hidden transition-all ${
                       isOwnProfile
                         ? 'border-[#0085FF] ring-2 ring-[#0085FF]/15'
                         : 'border-gray-200 opacity-90'
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        {isOwnProfile ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide bg-blue-100 text-[#007CF0] px-2.5 py-0.5 rounded-full">
-                            ✨ Tu Perfil
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
-                            <Lock className="w-3 h-3" />
-                            <span>Perfil de compañero(a)</span>
-                          </span>
+                      {/* Banner superior (imagen personalizada o degradado Gemini) */}
+                      <div className="h-24 w-full bg-gradient-to-r from-[#F5BF23]/90 via-amber-300 to-[#0085FF]/85 relative overflow-hidden">
+                        {member.banner_url && (
+                          <img
+                            src={member.banner_url}
+                            alt={`Banner de ${member.full_name}`}
+                            className="w-full h-full object-cover object-center"
+                          />
                         )}
+                        <div className="absolute top-2.5 right-2.5">
+                          {isOwnProfile ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide bg-white/95 text-[#007CF0] px-2.5 py-0.5 rounded-full shadow-xs">
+                              ✨ Tu Perfil
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-700 bg-white/90 px-2.5 py-0.5 rounded-full shadow-xs">
+                              <Lock className="w-3 h-3" />
+                              <span>Compañero(a)</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-3.5 mb-3">
-                        {member.avatar_url ? (
-                          <img
-                            src={member.avatar_url}
-                            alt={member.full_name}
-                            className="w-14 h-14 rounded-2xl object-cover border border-gray-200"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0085FF] to-indigo-700 text-white font-brand font-black text-lg flex items-center justify-center">
-                            {member.full_name?.[0]?.toUpperCase() || 'E'}
-                          </div>
-                        )}
-                        <div>
+                      <div className="px-5 pt-0 pb-4">
+                        <div className="-mt-8 mb-3 flex items-end justify-between relative z-10">
+                          {member.avatar_url ? (
+                            <img
+                              src={member.avatar_url}
+                              alt={member.full_name}
+                              className="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-md bg-white"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0085FF] to-indigo-700 text-white font-brand font-black text-lg flex items-center justify-center border-4 border-white shadow-md">
+                              {member.full_name?.[0]?.toUpperCase() || 'E'}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mb-2">
                           <h3 className="font-bold text-gray-900 text-base leading-snug">
                             {member.full_name}
                           </h3>
                           <p className="text-xs text-[#007CF0] font-semibold">{member.career}</p>
                           <p className="text-[11px] text-gray-500">{member.role_title}</p>
+                          {member.email && (
+                            <p className="text-[11px] text-gray-400 mt-0.5">{member.email}</p>
+                          )}
                         </div>
-                      </div>
 
-                      <p className="text-xs text-gray-600 line-clamp-3 mb-3">{member.bio}</p>
+                        <p className="text-xs text-gray-600 line-clamp-3">{member.bio}</p>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="px-5 pb-5 pt-3 border-t border-gray-100">
                       {isOwnProfile ? (
                         <button
                           type="button"
-                          onClick={() => setEditingAmbassador({ ...member })}
+                          onClick={() =>
+                            setEditingAmbassador({
+                              ...member,
+                              email: member.email || session?.user?.email || '',
+                              newPassword: '',
+                            })
+                          }
                           className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-[#0085FF] hover:bg-blue-600 text-white shadow-xs transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" />
-                          <span>Editar Mi Perfil y Foto</span>
+                          <span>Editar Mi Perfil, Banner y Cuenta</span>
                         </button>
                       ) : (
                         <div className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-medium px-3.5 py-2 rounded-xl bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed">
                           <Lock className="w-3.5 h-3.5" />
-                          <span>Solo lectura</span>
+                          <span>Solo lectura (Perfil de {member.full_name})</span>
                         </div>
                       )}
                     </div>
@@ -1019,10 +1108,14 @@ export default function AdminPanel({
             <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-5">
               <div>
                 <h3 className="text-xl font-extrabold font-brand text-gray-900">
-                  {editingAmbassador.id ? 'Editar Perfil de Embajador(a)' : 'Agregar Embajador(a)'}
+                  {editingAmbassador.id
+                    ? 'Editar Mi Perfil, Banner y Cuenta'
+                    : 'Registrar Nuevo Embajador(a)'}
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Esta información aparecerá en la sección "Nuestro Equipo".
+                  {editingAmbassador.id
+                    ? 'Personaliza tu tarjeta pública y tus datos de inicio de sesión.'
+                    : 'Se creará su cuenta con la contraseña inicial Embajadores2026! para que luego él/ella edite su perfil.'}
                 </p>
               </div>
               <button
@@ -1035,48 +1128,167 @@ export default function AdminPanel({
             </div>
 
             <form onSubmit={handleSaveAmbassadorForm} className="space-y-4">
-              {/* Subida intuitiva de Foto */}
-              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                {editingAmbassador.avatar_url ? (
-                  <img
-                    src={editingAmbassador.avatar_url}
-                    alt="Vista previa"
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow"
-                  />
+              {/* Vista Previa interactiva de Banner (900x300) + Foto de Perfil (400x400) */}
+              <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50">
+                {/* Área del Banner (Proporción fija 3:1 -> 900x300 px) */}
+                <div className="h-28 w-full bg-gradient-to-r from-[#F5BF23]/90 via-amber-300 to-[#0085FF]/85 relative overflow-hidden">
+                  {editingAmbassador.banner_url && (
+                    <img
+                      src={editingAmbassador.banner_url}
+                      alt="Vista previa del banner"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  )}
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5 z-10">
+                    <label className="inline-flex items-center gap-1.5 bg-gray-900/80 hover:bg-gray-900 text-white font-semibold text-[11px] px-3 py-1.5 rounded-lg cursor-pointer shadow backdrop-blur-xs transition-colors">
+                      <ImageIcon className="w-3.5 h-3.5 text-[#F5BF23]" />
+                      <span>
+                        {isUploadingBanner ? 'Ajustando...' : 'Cambiar Banner (900×300)'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    {editingAmbassador.banner_url && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingAmbassador({ ...editingAmbassador, banner_url: '' })
+                        }
+                        className="bg-white/90 hover:bg-white text-gray-800 font-semibold text-[11px] px-2.5 py-1.5 rounded-lg shadow transition-colors"
+                        title="Volver al degradado amarillo-azul original"
+                      >
+                        Usar degradado
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Área de Foto de Perfil (400x400 px, con z-10 para no quedar debajo del banner) */}
+                <div className="px-4 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                  <div className="-mt-10 flex items-end gap-3.5 relative z-10">
+                    {editingAmbassador.avatar_url ? (
+                      <img
+                        src={editingAmbassador.avatar_url}
+                        alt="Vista previa"
+                        className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-md bg-white"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-2xl bg-[#0085FF] text-white font-brand font-black text-2xl flex items-center justify-center border-4 border-white shadow-md">
+                        {editingAmbassador.full_name?.[0]?.toUpperCase() || '✨'}
+                      </div>
+                    )}
+
+                    <div className="pb-0.5">
+                      <label className="inline-flex items-center gap-1.5 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 font-semibold text-xs px-3.5 py-2 rounded-xl cursor-pointer shadow-2xs transition-colors">
+                        <Upload className="w-3.5 h-3.5 text-[#0085FF]" />
+                        <span>
+                          {isUploadingPhoto ? 'Ajustando...' : 'Subir Foto (400×400)'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      {editingAmbassador.avatar_url && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditingAmbassador({ ...editingAmbassador, avatar_url: '' })
+                          }
+                          className="ml-2.5 text-xs text-red-600 hover:underline"
+                        >
+                          Quitar foto
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p className="px-4 pb-3 text-[11px] text-gray-500">
+                  Cualquier imagen que elijas se recorta y ajusta sola a las medidas exactas
+                  (Banner: <strong>900×300 px</strong> · Foto: <strong>400×400 px</strong>). Si no
+                  eliges banner se conserva el degradado amarillo-azul.
+                </p>
+              </div>
+
+              {/* Bloque de Credenciales (Correo y Contraseña) */}
+              <div className="bg-blue-50/60 border border-blue-200/80 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-[#007CF0]">
+                  <KeyRound className="w-4 h-4" />
+                  <span>
+                    {editingAmbassador.id
+                      ? 'Mis Datos de Acceso al Panel (Correo y Contraseña)'
+                      : 'Cuenta de Acceso del Nuevo Embajador(a)'}
+                  </span>
+                </div>
+
+                {editingAmbassador.id ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Mi Correo de Acceso *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={editingAmbassador.email || ''}
+                        onChange={(e) =>
+                          setEditingAmbassador({ ...editingAmbassador, email: e.target.value })
+                        }
+                        placeholder="tu.correo@gmail.com"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm focus:outline-none focus:border-[#0085FF]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Nueva Contraseña (Opcional)
+                      </label>
+                      <input
+                        type="password"
+                        value={editingAmbassador.newPassword || ''}
+                        onChange={(e) =>
+                          setEditingAmbassador({
+                            ...editingAmbassador,
+                            newPassword: e.target.value,
+                          })
+                        }
+                        placeholder="Dejar vacío para no cambiarla"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm focus:outline-none focus:border-[#0085FF]"
+                      />
+                    </div>
+                  </div>
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-[#0085FF] text-white font-brand font-black text-xl flex items-center justify-center">
-                    {editingAmbassador.full_name?.[0]?.toUpperCase() || '✨'}
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Correo Electrónico del Nuevo Embajador(a) *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={editingAmbassador.email || ''}
+                        onChange={(e) =>
+                          setEditingAmbassador({ ...editingAmbassador, email: e.target.value })
+                        }
+                        placeholder="nuevo.embajador@gmail.com"
+                        className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm focus:outline-none focus:border-[#0085FF]"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-600">
+                      🔑 Contraseña inicial por defecto:{' '}
+                      <code className="bg-white border border-blue-200 px-1.5 py-0.5 rounded font-bold text-gray-900">
+                        Embajadores2026!
+                      </code>
+                      . Cuando inicie sesión con su correo, será dueño(a) exclusivo de su tarjeta y
+                      podrá cambiar su contraseña.
+                    </p>
                   </div>
                 )}
-
-                <div className="flex-1">
-                  <label className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer shadow-2xs transition-colors">
-                    <Upload className="w-4 h-4 text-[#0085FF]" />
-                    <span>
-                      {isUploadingPhoto ? 'Cargando imagen...' : 'Subir foto desde mi dispositivo'}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                  {editingAmbassador.avatar_url && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setEditingAmbassador({ ...editingAmbassador, avatar_url: '' })
-                      }
-                      className="ml-3 text-xs text-red-600 hover:underline"
-                    >
-                      Quitar foto
-                    </button>
-                  )}
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    JPG, PNG o WebP. Si no subes foto se mostrarán tus iniciales con estilo Gemini.
-                  </p>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

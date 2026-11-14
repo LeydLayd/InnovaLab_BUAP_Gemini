@@ -30,6 +30,7 @@ create table if not exists public.ambassadors (
   bio text not null,
   favorite_prompt text,
   avatar_url text,
+  banner_url text default '',
   linkedin_url text,
   instagram_url text,
   display_order int not null default 1,
