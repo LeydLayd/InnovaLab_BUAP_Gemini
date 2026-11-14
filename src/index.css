@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #EDF4FC;
+  }
+}
+
+.font-brand {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Perspectiva suave para el carrusel de secciones en el encabezado */
+.carousel-stage {
+  perspective: 1200px;
+}
+
+.carousel-card {
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.35s ease,
+              filter 0.35s ease;
+  will-change: transform, opacity;
+}
